@@ -9,10 +9,13 @@
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
     "serve:prod": "npm run build && npm run start",
+    "serve:lan": "npm run dev",
+    "tunnel:dev": "npx localtunnel --port 3000",
     "serve:detached": "cmd /c start \"Inventory Management\" npm run serve:prod",
     "clean": "rm -rf dist server.js",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
+    "deploy:netlify": "npm run build && npx netlify deploy --prod --dir=dist --site=$NETLIFY_SITE_ID",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
@@ -46,6 +49,7 @@
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
+    "localtunnel": "^2.0.2",
     "vite": "^6.2.3"
   }
 }

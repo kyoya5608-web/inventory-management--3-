@@ -41,33 +41,12 @@ export default function LoginPage({ users, onLoginEvent, onAddUser, onEditUser }
       return;
     }
 
-    let matchedUser = users.find(u => u.email.toLowerCase().trim() === email.toLowerCase().trim());
-
-    // Shorthand alias support to prevent administrator login lockdown
-    if (!matchedUser && (
-      email.toLowerCase().trim() === 'admin' || 
-      email.toLowerCase().trim() === 'admin@equiprime.ph' || 
-      email.toLowerCase().trim() === 'admin@test.com' ||
-      email.toLowerCase().trim() === 'kimberly.pantoja@equiprime.ph'
-    )) {
-      matchedUser = users.find(u => u.role === 'Admin')
-        || users.find(u => u.email.toLowerCase().trim() === 'kimberly.pantoja@equiprime.ph')
-        || users[0];
-    }
+    const matchedUser = users.find(u => u.email.toLowerCase().trim() === email.toLowerCase().trim());
 
     if (!matchedUser) {
       onLoginEvent(null, email, false, 'Email address is not registered in central system.');
       setErrorMessage('Access Denied. Email address is not registered in the system.');
       return;
-    }
-
-    // Force system Admin account to always remain active and approved to prevent manual or state lockdown
-    if (matchedUser.role === 'Admin') {
-      matchedUser.isApproved = true;
-      matchedUser.status = 'Active';
-      if (!matchedUser.password) {
-        matchedUser.password = '1234';
-      }
     }
 
     if (!matchedUser.isApproved) {
@@ -89,8 +68,7 @@ export default function LoginPage({ users, onLoginEvent, onAddUser, onEditUser }
       return;
     }
 
-    // Standard login validation with bypass for administrator super user
-    if (password !== matchedUser.password && email.toLowerCase().trim() !== 'kimberly.pantoja@equiprime.ph') {
+    if (password !== matchedUser.password) {
       onLoginEvent(matchedUser, email, false, 'Invalid PIN / password entered.');
       setErrorMessage('Incorrect password. Please verify your credentials and try again.');
       return;
@@ -394,7 +372,7 @@ export default function LoginPage({ users, onLoginEvent, onAddUser, onEditUser }
                       autoComplete="username"
                       inputMode="email"
                       required
-                      placeholder="e.g. employee@equiprime.ph or admin"
+                      placeholder="e.g. employee@equiprime.ph"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full pl-9 pr-3 py-2 border border-slate-800 rounded-lg bg-slate-950 text-slate-100 font-medium text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none"
@@ -432,22 +410,6 @@ export default function LoginPage({ users, onLoginEvent, onAddUser, onEditUser }
                 <span className="flex-shrink mx-3 text-slate-500 font-mono text-[9px] uppercase tracking-wider">or sign in instantly</span>
                 <div className="flex-grow border-t border-slate-800"></div>
               </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const adminUser = users.find(u => u.role === 'Admin')
-                    || users.find(u => u.email.toLowerCase().trim() === 'kimberly.pantoja@equiprime.ph')
-                    || users[0];
-                  if (adminUser) {
-                    onLoginEvent(adminUser, adminUser.email, true, 'One-click bypass activated for evaluation.');
-                  }
-                }}
-                className="w-full py-2 px-4 shadow-xs text-xs font-bold rounded-lg border border-dashed border-indigo-505/30 hover:border-indigo-505 bg-[#172138] hover:bg-[#1f2d4e] text-indigo-300 flex items-center justify-center gap-2 duration-150 transition-all select-none cursor-pointer"
-              >
-                <ShieldCheck className="w-4 h-4 text-indigo-400" />
-                <span>Default Super-Admin Bypass</span>
-              </button>
 
               <div className="pt-4 border-t border-slate-900 flex justify-between items-center text-[11px]">
                 <button

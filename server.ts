@@ -1,10 +1,36 @@
+import 'dotenv/config';
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 
+function createBasicAuthMiddleware(user?: string, pass?: string) {
+  if (!user || !pass) {
+    return (_req: express.Request, _res: express.Response, next: express.NextFunction) => next();
+  }
+
+  return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const auth = req.headers.authorization;
+    if (!auth || !auth.startsWith('Basic ')) {
+      res.setHeader('WWW-Authenticate', 'Basic realm="Protected Area"');
+      return res.status(401).send('Authentication required');
+    }
+
+    const [username, password] = Buffer.from(auth.slice(6), 'base64').toString().split(':');
+    if (username === user && password === pass) {
+      return next();
+    }
+
+    res.setHeader('WWW-Authenticate', 'Basic realm="Protected Area"');
+    return res.status(401).send('Authentication required');
+  };
+}
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
+  const authMiddleware = createBasicAuthMiddleware(process.env.LAN_AUTH_USER, process.env.LAN_AUTH_PASS);
+
+  app.use(authMiddleware);
 
   // API routes FIRST
   app.get("/api/health", (req, res) => {

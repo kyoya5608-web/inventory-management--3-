@@ -7,7 +7,8 @@ export default defineConfig(() => {
   const homepage = process.env.npm_package_homepage;
   let base = '/';
 
-  if (homepage) {
+  // Netlify serves sites from the project root, so preserve root base on Netlify.
+  if (process.env.NETLIFY !== 'true' && homepage) {
     try {
       const parsedUrl = new URL(homepage);
       base = parsedUrl.pathname;
@@ -28,6 +29,8 @@ export default defineConfig(() => {
       },
     },
     server: {
+      host: '0.0.0.0',
+      allowedHosts: 'all',
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modify—file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
