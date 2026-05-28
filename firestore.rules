@@ -1,0 +1,353 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Safety Net & Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ID Path Variable Hardening Match Guard
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Reuseable Global Guards
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isLeafVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Resolve user's actual role from trusted database document
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function hasRole(role) {
+      return isLeafVerified() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+             getUserData().role == role;
+    }
+
+    function isAdmin() {
+      return hasRole('Admin');
+    }
+
+    function isManager() {
+      return hasRole('Manager');
+    }
+
+    function isStaff() {
+      return hasRole('Staff');
+    }
+
+    function isWriteAuthorized() {
+      return isAdmin() || isManager();
+    }
+
+    // --- Schema Validation Helpers ---
+    
+    function isValidWarehouse(data) {
+      return data.keys().hasAll(['id', 'name', 'code', 'status']) && 
+             data.keys().size() <= 7 &&
+             data.id is string && data.id.size() <= 128 &&
+             data.name is string && data.name.size() <= 128 &&
+             data.code is string && data.code.size() <= 32 &&
+             data.status is string && data.status in ['Active', 'Inactive'] &&
+             (!data.keys().hasAny(['location']) || (data.location is string && data.location.size() <= 256)) &&
+             (!data.keys().hasAny(['contactEmail']) || (data.contactEmail is string && data.contactEmail.size() <= 128)) &&
+             (!data.keys().hasAny(['maxCapacity']) || (data.maxCapacity is number && data.maxCapacity >= 0));
+    }
+
+    function isValidItem(data) {
+      return data.keys().hasAll(['id', 'sku', 'name', 'status', 'stockByWarehouse']) && 
+             data.keys().size() <= 15 &&
+             data.id is string && data.id.size() <= 128 &&
+             data.sku is string && data.sku.size() <= 64 &&
+             data.name is string && data.name.size() <= 256 &&
+             data.status is string && data.status in ['Active', 'Inactive'] &&
+             data.stockByWarehouse is map &&
+             (!data.keys().hasAny(['description']) || (data.description is string && data.description.size() <= 1000)) &&
+             (!data.keys().hasAny(['unit']) || (data.unit is string && data.unit.size() <= 32)) &&
+             (!data.keys().hasAny(['purchasePrice']) || (data.purchasePrice is number && data.purchasePrice >= 0)) &&
+             (!data.keys().hasAny(['sellingPrice']) || (data.sellingPrice is number && data.sellingPrice >= 0)) &&
+             (!data.keys().hasAny(['reorderPoint']) || (data.reorderPoint is number && data.reorderPoint >= 0)) &&
+             (!data.keys().hasAny(['category']) || (data.category is string && data.category.size() <= 128)) &&
+             (!data.keys().hasAny(['brand']) || (data.brand is string && data.brand.size() <= 128)) &&
+             (!data.keys().hasAny(['applicableUnits']) || (data.applicableUnits is string && data.applicableUnits.size() <= 256)) &&
+             (!data.keys().hasAny(['alternatePartNumbers']) || (data.alternatePartNumbers is string && data.alternatePartNumbers.size() <= 256)) &&
+             (!data.keys().hasAny(['imageUrl']) || (data.imageUrl is string && data.imageUrl.size() <= 512)) &&
+             (!data.keys().hasAny(['supplierId']) || (data.supplierId is string && data.supplierId.size() <= 128));
+    }
+
+    function isValidSupplier(data) {
+      return data.keys().hasAll(['id', 'name', 'currency', 'exchangeRate', 'leadTimeDays']) && 
+             data.keys().size() <= 13 &&
+             data.id is string && data.id.size() <= 128 &&
+             data.name is string && data.name.size() <= 256 &&
+             data.currency is string && data.currency.size() == 3 &&
+             data.exchangeRate is number && data.exchangeRate >= 0 &&
+             data.leadTimeDays is number && data.leadTimeDays >= 0 &&
+             (!data.keys().hasAny(['contactPerson']) || (data.contactPerson is string && data.contactPerson.size() <= 128)) &&
+             (!data.keys().hasAny(['email']) || (data.email is string && data.email.size() <= 128)) &&
+             (!data.keys().hasAny(['phone']) || (data.phone is string && data.phone.size() <= 64)) &&
+             (!data.keys().hasAny(['supplierType']) || (data.supplierType is string && data.supplierType in ['Local', 'International'])) &&
+             (!data.keys().hasAny(['tin']) || (data.tin is string && data.tin.size() <= 32)) &&
+             (!data.keys().hasAny(['address']) || (data.address is string && data.address.size() <= 256)) &&
+             (!data.keys().hasAny(['contactPhone']) || (data.contactPhone is string && data.contactPhone.size() <= 64)) &&
+             (!data.keys().hasAny(['exchangeRateHistory']) || (data.exchangeRateHistory is list && data.exchangeRateHistory.size() <= 100));
+    }
+
+    function isValidCustomer(data) {
+      return data.keys().hasAll(['id', 'name', 'status']) && 
+             data.keys().size() <= 7 &&
+             data.id is string && data.id.size() <= 128 &&
+             data.name is string && data.name.size() <= 256 &&
+             data.status is string && data.status in ['Active', 'Inactive'] &&
+             (!data.keys().hasAny(['email']) || (data.email is string && data.email.size() <= 128)) &&
+             (!data.keys().hasAny(['phone']) || (data.phone is string && data.phone.size() <= 64)) &&
+             (!data.keys().hasAny(['address']) || (data.address is string && data.address.size() <= 256)) &&
+             (!data.keys().hasAny(['tin']) || (data.tin is string && data.tin.size() <= 32));
+    }
+
+    function isValidPurchaseOrder(data) {
+      return data.keys().hasAll(['id', 'poNumber', 'status', 'warehouseId', 'items', 'total']) && 
+             data.keys().size() <= 23 &&
+             data.id is string && data.id.size() <= 128 &&
+             data.poNumber is string && data.poNumber.size() <= 32 &&
+             data.status is string && data.status in ['Draft', 'Issued', 'In Transit', 'Received', 'Cancelled'] &&
+             data.warehouseId is string && data.warehouseId.size() <= 128 &&
+             data.items is list && data.items.size() <= 100 &&
+             data.total is number && data.total >= 0 &&
+             (!data.keys().hasAny(['vendorName']) || (data.vendorName is string && data.vendorName.size() <= 256)) &&
+             (!data.keys().hasAny(['supplierId']) || (data.supplierId is string && data.supplierId.size() <= 128)) &&
+             (!data.keys().hasAny(['orderDate']) || (data.orderDate is string && data.orderDate.size() <= 32)) &&
+             (!data.keys().hasAny(['deliveryDate']) || (data.deliveryDate is string && data.deliveryDate.size() <= 32)) &&
+             (!data.keys().hasAny(['actualDeliveryDate']) || (data.actualDeliveryDate is string && data.actualDeliveryDate.size() <= 32)) &&
+             (!data.keys().hasAny(['leadTimeDays']) || (data.leadTimeDays is number && data.leadTimeDays >= 0)) &&
+             (!data.keys().hasAny(['subtotal']) || (data.subtotal is number && data.subtotal >= 0)) &&
+             (!data.keys().hasAny(['tax']) || (data.tax is number && data.tax >= 0)) &&
+             (!data.keys().hasAny(['currency']) || (data.currency is string && data.currency.size() == 3)) &&
+             (!data.keys().hasAny(['exchangeRate']) || (data.exchangeRate is number && data.exchangeRate >= 0)) &&
+             (!data.keys().hasAny(['notes']) || (data.notes is string && data.notes.size() <= 1000)) &&
+             (!data.keys().hasAny(['taxType']) || (data.taxType is string && data.taxType in ['VAT', 'Non-VAT', 'Custom', 'None'])) &&
+             (!data.keys().hasAny(['customTaxRate']) || (data.customTaxRate is number && data.customTaxRate >= 0)) &&
+             (!data.keys().hasAny(['discountType']) || (data.discountType is string && data.discountType in ['Percentage', 'Fixed', 'None'])) &&
+             (!data.keys().hasAny(['discountValue']) || (data.discountValue is number && data.discountValue >= 0)) &&
+             (!data.keys().hasAny(['deliveryOption']) || (data.deliveryOption is string && data.deliveryOption.size() <= 128)) &&
+             (!data.keys().hasAny(['statusHistory']) || (data.statusHistory is list && data.statusHistory.size() <= 50));
+    }
+
+    function isValidSalesOrder(data) {
+      return data.keys().hasAll(['id', 'soNumber', 'status', 'warehouseId', 'items', 'total']) && 
+             data.keys().size() <= 15 &&
+             data.id is string && data.id.size() <= 128 &&
+             data.soNumber is string && data.soNumber.size() <= 32 &&
+             data.status is string && data.status in ['Draft', 'Confirmed', 'Shipped', 'Received', 'Cancelled'] &&
+             data.warehouseId is string && data.warehouseId.size() <= 128 &&
+             data.items is list && data.items.size() <= 100 &&
+             data.total is number && data.total >= 0 &&
+             (!data.keys().hasAny(['customerName']) || (data.customerName is string && data.customerName.size() <= 256)) &&
+             (!data.keys().hasAny(['customerId']) || (data.customerId is string && data.customerId.size() <= 128)) &&
+             (!data.keys().hasAny(['orderDate']) || (data.orderDate is string && data.orderDate.size() <= 32)) &&
+             (!data.keys().hasAny(['shipmentDate']) || (data.shipmentDate is string && data.shipmentDate.size() <= 32)) &&
+             (!data.keys().hasAny(['subtotal']) || (data.subtotal is number && data.subtotal >= 0)) &&
+             (!data.keys().hasAny(['tax']) || (data.tax is number && data.tax >= 0)) &&
+             (!data.keys().hasAny(['notes']) || (data.notes is string && data.notes.size() <= 1000)) &&
+             (!data.keys().hasAny(['serviceCategory']) || (data.serviceCategory is string && data.serviceCategory.size() <= 128));
+    }
+
+    function isValidStockTransfer(data) {
+      return data.keys().hasAll(['id', 'transferNumber', 'sourceWarehouseId', 'destinationWarehouseId', 'status', 'items']) && 
+             data.keys().size() <= 8 &&
+             data.id is string && data.id.size() <= 128 &&
+             data.transferNumber is string && data.transferNumber.size() <= 32 &&
+             data.sourceWarehouseId is string && data.sourceWarehouseId.size() <= 128 &&
+             data.destinationWarehouseId is string && data.destinationWarehouseId.size() <= 128 &&
+             data.status is string && data.status in ['Draft', 'In Transit', 'Completed', 'Cancelled'] &&
+             data.items is list && data.items.size() <= 100 &&
+             (!data.keys().hasAny(['transferDate']) || (data.transferDate is string && data.transferDate.size() <= 32)) &&
+             (!data.keys().hasAny(['notes']) || (data.notes is string && data.notes.size() <= 1000));
+    }
+
+    function isValidInventoryTransaction(data) {
+      return data.keys().hasAll(['id', 'itemId', 'sku', 'quantity', 'type', 'warehouseId', 'date']) && 
+             data.keys().size() <= 11 &&
+             data.id is string && data.id.size() <= 128 &&
+             data.itemId is string && data.itemId.size() <= 128 &&
+             data.sku is string && data.sku.size() <= 64 &&
+             data.quantity is number &&
+             data.type is string && data.type.size() <= 62 &&
+             data.warehouseId is string && data.warehouseId.size() <= 128 &&
+             data.date is string && data.date.size() <= 32 &&
+             (!data.keys().hasAny(['itemName']) || (data.itemName is string && data.itemName.size() <= 256)) &&
+             (!data.keys().hasAny(['referenceNumber']) || (data.referenceNumber is string && data.referenceNumber.size() <= 64)) &&
+             (!data.keys().hasAny(['warehouseName']) || (data.warehouseName is string && data.warehouseName.size() <= 256)) &&
+             (!data.keys().hasAny(['description']) || (data.description is string && data.description.size() <= 1000));
+    }
+
+    function isValidStockLot(data) {
+      return data.keys().hasAll(['id', 'itemId', 'lotNumber', 'warehouseId', 'quantityReceived', 'quantityRemaining', 'dateReceived']) && 
+             data.keys().size() <= 9 &&
+             data.id is string && data.id.size() <= 128 &&
+             data.itemId is string && data.itemId.size() <= 128 &&
+             data.lotNumber is string && data.lotNumber.size() <= 64 &&
+             data.warehouseId is string && data.warehouseId.size() <= 128 &&
+             data.quantityReceived is number && data.quantityReceived >= 0 &&
+             data.quantityRemaining is number && data.quantityRemaining >= 0 &&
+             data.dateReceived is string && data.dateReceived.size() <= 32 &&
+             (!data.keys().hasAny(['expiryDate']) || (data.expiryDate is string && data.expiryDate.size() <= 32)) &&
+             (!data.keys().hasAny(['barcodeValue']) || (data.barcodeValue is string && data.barcodeValue.size() <= 256));
+    }
+
+    function isValidMachineLog(data) {
+      return data.keys().hasAll(['id', 'serialNumber', 'model', 'customerId', 'status']) && 
+             data.keys().size() <= 14 &&
+             data.id is string && data.id.size() <= 128 &&
+             data.serialNumber is string && data.serialNumber.size() <= 64 &&
+             data.model is string && data.model.size() <= 128 &&
+             data.customerId is string && data.customerId.size() <= 128 &&
+             data.status is string && data.status.size() <= 64 &&
+             (!data.keys().hasAny(['customerName']) || (data.customerName is string && data.customerName.size() <= 256)) &&
+             (!data.keys().hasAny(['salesOrderId']) || (data.salesOrderId is string && data.salesOrderId.size() <= 128)) &&
+             (!data.keys().hasAny(['soNumber']) || (data.soNumber is string && data.soNumber.size() <= 64)) &&
+             (!data.keys().hasAny(['deliveryDate']) || (data.deliveryDate is string && data.deliveryDate.size() <= 32)) &&
+             (!data.keys().hasAny(['warrantyStart']) || (data.warrantyStart is string && data.warrantyStart.size() <= 32)) &&
+             (!data.keys().hasAny(['warrantyEnd']) || (data.warrantyEnd is string && data.warrantyEnd.size() <= 32)) &&
+             (!data.keys().hasAny(['warrantyStatus']) || (data.warrantyStatus is string && data.warrantyStatus.size() <= 64)) &&
+             (!data.keys().hasAny(['machineLocation']) || (data.machineLocation is string && data.machineLocation.size() <= 256)) &&
+             (!data.keys().hasAny(['notes']) || (data.notes is string && data.notes.size() <= 1000));
+    }
+
+    // --- Core Match Rules for Collections ---
+
+    match /warehouses/{warehouseId} {
+      allow get, list: if isLeafVerified();
+      allow create: if isLeafVerified() && isWriteAuthorized() && isValidId(warehouseId) && isValidWarehouse(incoming());
+      allow update: if isLeafVerified() && isWriteAuthorized() && isValidId(warehouseId) && isValidWarehouse(incoming()) && incoming().id == existing().id;
+      allow delete: if isLeafVerified() && isAdmin();
+    }
+
+    match /items/{itemId} {
+      allow get, list: if isLeafVerified();
+      allow create: if isLeafVerified() && isWriteAuthorized() && isValidId(itemId) && isValidItem(incoming());
+      allow update: if isLeafVerified() && isWriteAuthorized() && isValidId(itemId) && isValidItem(incoming()) && incoming().id == existing().id;
+      allow delete: if isLeafVerified() && isAdmin();
+    }
+
+    match /suppliers/{supplierId} {
+      allow get, list: if isLeafVerified();
+      allow create: if isLeafVerified() && isWriteAuthorized() && isValidId(supplierId) && isValidSupplier(incoming());
+      allow update: if isLeafVerified() && isWriteAuthorized() && isValidId(supplierId) && isValidSupplier(incoming()) && incoming().id == existing().id;
+      allow delete: if isLeafVerified() && isAdmin();
+    }
+
+    match /customers/{customerId} {
+      allow get, list: if isLeafVerified();
+      allow create: if isLeafVerified() && isWriteAuthorized() && isValidId(customerId) && isValidCustomer(incoming());
+      allow update: if isLeafVerified() && isWriteAuthorized() && isValidId(customerId) && isValidCustomer(incoming()) && incoming().id == existing().id;
+      allow delete: if isLeafVerified() && isAdmin();
+    }
+
+    match /purchase_orders/{poId} {
+      allow get, list: if isLeafVerified();
+      allow create: if isLeafVerified() && isWriteAuthorized() && isValidId(poId) && isValidPurchaseOrder(incoming());
+      allow update: if isLeafVerified() && isWriteAuthorized() && isValidId(poId) && isValidPurchaseOrder(incoming()) && incoming().id == existing().id && (
+        isAdmin() || (
+          existing().status != 'Received' && existing().status != 'Cancelled'
+        )
+      );
+      allow delete: if isLeafVerified() && isAdmin();
+    }
+
+    match /sales_orders/{soId} {
+      allow get, list: if isLeafVerified();
+      allow create: if isLeafVerified() && isWriteAuthorized() && isValidId(soId) && isValidSalesOrder(incoming());
+      allow update: if isLeafVerified() && isWriteAuthorized() && isValidId(soId) && isValidSalesOrder(incoming()) && incoming().id == existing().id && (
+        isAdmin() || (
+          existing().status != 'Received' && existing().status != 'Cancelled'
+        )
+      );
+      allow delete: if isLeafVerified() && isAdmin();
+    }
+
+    match /transfers/{transferId} {
+      allow get, list: if isLeafVerified();
+      allow create: if isLeafVerified() && isWriteAuthorized() && isValidId(transferId) && isValidStockTransfer(incoming());
+      allow update: if isLeafVerified() && isWriteAuthorized() && isValidId(transferId) && isValidStockTransfer(incoming()) && incoming().id == existing().id && (
+        isAdmin() || (
+          existing().status != 'Completed' && existing().status != 'Cancelled'
+        )
+      );
+      allow delete: if isLeafVerified() && isAdmin();
+    }
+
+    match /transactions/{transactionId} {
+      allow get, list: if isLeafVerified();
+      allow create: if isLeafVerified() && isWriteAuthorized() && isValidId(transactionId) && isValidInventoryTransaction(incoming());
+      allow update: if isLeafVerified() && isWriteAuthorized() && isValidId(transactionId) && isValidInventoryTransaction(incoming()) && incoming().id == existing().id;
+      allow delete: if isLeafVerified() && isAdmin();
+    }
+
+    match /lots/{lotId} {
+      allow get, list: if isLeafVerified();
+      allow create: if isLeafVerified() && isWriteAuthorized() && isValidId(lotId) && isValidStockLot(incoming());
+      allow update: if isLeafVerified() && isWriteAuthorized() && isValidId(lotId) && isValidStockLot(incoming()) && incoming().id == existing().id;
+      allow delete: if isLeafVerified() && isAdmin();
+    }
+
+    match /machine_logs/{machineId} {
+      allow get, list: if isLeafVerified();
+      allow create: if isLeafVerified() && isWriteAuthorized() && isValidId(machineId) && isValidMachineLog(incoming());
+      allow update: if isLeafVerified() && isWriteAuthorized() && isValidId(machineId) && isValidMachineLog(incoming()) && incoming().id == existing().id;
+      allow delete: if isLeafVerified() && isAdmin();
+    }
+
+    match /explicit_grs/{grId} {
+      allow get, list: if isLeafVerified();
+      allow create: if isLeafVerified() && isWriteAuthorized() && isValidId(grId) && isValidExplicitGoodsReceipt(incoming());
+      allow update: if isLeafVerified() && isWriteAuthorized() && isValidId(grId) && isValidExplicitGoodsReceipt(incoming()) && incoming().id == existing().id;
+      allow delete: if isLeafVerified() && isAdmin();
+    }
+
+    match /explicit_drs/{drId} {
+      allow get, list: if isLeafVerified();
+      allow create: if isLeafVerified() && isWriteAuthorized() && isValidId(drId) && isValidExplicitDeliveryReceipt(incoming());
+      allow update: if isLeafVerified() && isWriteAuthorized() && isValidId(drId) && isValidExplicitDeliveryReceipt(incoming()) && incoming().id == existing().id;
+      allow delete: if isLeafVerified() && isAdmin();
+    }
+
+    match /login_session_logs/{logId} {
+      allow get, list: if isLeafVerified();
+      // Any authenticated user can create session logs
+      allow create: if isLeafVerified() && isValidId(logId) && isValidLoginSessionLog(incoming());
+      allow update: if isLeafVerified() && isWriteAuthorized() && isValidId(logId) && isValidLoginSessionLog(incoming()) && incoming().id == existing().id;
+      allow delete: if isLeafVerified() && isAdmin();
+    }
+
+    match /users/{userId} {
+      allow get: if isLeafVerified() && (userId == request.auth.uid || isWriteAuthorized());
+      allow list: if isLeafVerified() && isWriteAuthorized();
+      allow create: if isLeafVerified() && (
+        (userId == request.auth.uid && incoming().role == 'Staff' && (!incoming().keys().hasAny(['isApproved']) || incoming().isApproved == false)) ||
+        isAdmin()
+      ) && isValidUserRecord(incoming());
+      allow update: if isLeafVerified() && (
+        isAdmin() ||
+        (userId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'email', 'status']) && incoming().role == existing().role && (!incoming().keys().hasAny(['isApproved']) || incoming().isApproved == existing().isApproved))
+      ) && isValidUserRecord(incoming()) && incoming().id == existing().id;
+      allow delete: if isLeafVerified() && isAdmin();
+    }
+  }
+}

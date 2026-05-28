@@ -1,0 +1,314 @@
+{
+  "entities": {
+    "Warehouse": {
+      "title": "Warehouse",
+      "description": "A physical storage facility belonging to the organization",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier of the warehouse" },
+        "name": { "type": "string", "description": "Display name of the warehouse" },
+        "code": { "type": "string", "description": "Short code designating the warehouse" },
+        "location": { "type": "string", "description": "Geographical address of the warehouse" },
+        "contactEmail": { "type": "string", "description": "Primary email for operations contact" },
+        "status": { "type": "string", "enum": ["Active", "Inactive"] },
+        "maxCapacity": { "type": "number", "description": "Optional capacity cap metric" }
+      },
+      "required": ["id", "name", "code", "status"]
+    },
+    "Item": {
+      "title": "Item",
+      "description": "An inventory item or component SKU in the system",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "sku": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "unit": { "type": "string" },
+        "purchasePrice": { "type": "number" },
+        "sellingPrice": { "type": "number" },
+        "reorderPoint": { "type": "number" },
+        "category": { "type": "string" },
+        "brand": { "type": "string" },
+        "applicableUnits": { "type": "string" },
+        "alternatePartNumbers": { "type": "string" },
+        "status": { "type": "string", "enum": ["Active", "Inactive"] },
+        "stockByWarehouse": { "type": "object" },
+        "imageUrl": { "type": "string" },
+        "supplierId": { "type": "string" }
+      },
+      "required": ["id", "sku", "name", "status", "stockByWarehouse"]
+    },
+    "Supplier": {
+      "title": "Supplier",
+      "description": "A vendor profile matching items to procurement",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "currency": { "type": "string" },
+        "exchangeRate": { "type": "number" },
+        "contactPerson": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "leadTimeDays": { "type": "number" },
+        "supplierType": { "type": "string", "enum": ["Local", "International"] },
+        "tin": { "type": "string" },
+        "address": { "type": "string" },
+        "contactPhone": { "type": "string" }
+      },
+      "required": ["id", "name", "currency", "exchangeRate", "leadTimeDays"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "A client organization purchasing inventory items",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "tin": { "type": "string" },
+        "status": { "type": "string", "enum": ["Active", "Inactive"] }
+      },
+      "required": ["id", "name", "status"]
+    },
+    "PurchaseOrder": {
+      "title": "Purchase Order",
+      "description": "A document sent to a supplier containing item specifications",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "poNumber": { "type": "string" },
+        "vendorName": { "type": "string" },
+        "supplierId": { "type": "string" },
+        "orderDate": { "type": "string" },
+        "deliveryDate": { "type": "string" },
+        "actualDeliveryDate": { "type": "string" },
+        "leadTimeDays": { "type": "number" },
+        "status": { "type": "string", "enum": ["Draft", "Issued", "In Transit", "Received", "Cancelled"] },
+        "warehouseId": { "type": "string" },
+        "items": { "type": "array" },
+        "subtotal": { "type": "number" },
+        "tax": { "type": "number" },
+        "total": { "type": "number" },
+        "currency": { "type": "string" },
+        "exchangeRate": { "type": "number" },
+        "notes": { "type": "string" },
+        "taxType": { "type": "string", "enum": ["VAT", "Non-VAT", "Custom", "None"] },
+        "customTaxRate": { "type": "number" },
+        "discountType": { "type": "string", "enum": ["Percentage", "Fixed", "None"] },
+        "discountValue": { "type": "number" },
+        "deliveryOption": { "type": "string" }
+      },
+      "required": ["id", "poNumber", "status", "warehouseId", "items", "total"]
+    },
+    "SalesOrder": {
+      "title": "Sales Order",
+      "description": "A transaction document recording customer orders",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "soNumber": { "type": "string" },
+        "customerName": { "type": "string" },
+         "customerId": { "type": "string" },
+        "orderDate": { "type": "string" },
+        "shipmentDate": { "type": "string" },
+        "status": { "type": "string" },
+        "warehouseId": { "type": "string" },
+        "items": { "type": "array" },
+        "subtotal": { "type": "number" },
+        "tax": { "type": "number" },
+        "total": { "type": "number" },
+        "notes": { "type": "string" }
+      },
+      "required": ["id", "soNumber", "status", "warehouseId", "items", "total"]
+    },
+    "StockTransfer": {
+      "title": "Stock Transfer",
+      "description": "A shipment between different internal warehouses",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "transferNumber": { "type": "string" },
+        "sourceWarehouseId": { "type": "string" },
+        "destinationWarehouseId": { "type": "string" },
+        "transferDate": { "type": "string" },
+        "status": { "type": "string" },
+        "items": { "type": "array" },
+        "notes": { "type": "string" }
+      },
+      "required": ["id", "transferNumber", "sourceWarehouseId", "destinationWarehouseId", "status", "items"]
+    },
+    "InventoryTransaction": {
+      "title": "Inventory Transaction",
+      "description": "Every single movement audit line item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "itemId": { "type": "string" },
+        "itemName": { "type": "string" },
+        "sku": { "type": "string" },
+        "quantity": { "type": "number" },
+        "type": { "type": "string" },
+        "referenceNumber": { "type": "string" },
+        "warehouseId": { "type": "string" },
+        "warehouseName": { "type": "string" },
+        "date": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "required": ["id", "itemId", "sku", "quantity", "type", "warehouseId", "date"]
+    },
+    "StockLot": {
+      "title": "Stock Lot",
+      "description": "Traceable batch of items with distinct numbers and expirations",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "itemId": { "type": "string" },
+        "lotNumber": { "type": "string" },
+        "warehouseId": { "type": "string" },
+        "quantityReceived": { "type": "number" },
+        "quantityRemaining": { "type": "number" },
+        "dateReceived": { "type": "string" },
+        "expiryDate": { "type": "string" },
+        "barcodeValue": { "type": "string" }
+      },
+      "required": ["id", "itemId", "lotNumber", "warehouseId", "quantityReceived", "quantityRemaining", "dateReceived"]
+    },
+    "MachineLog": {
+      "title": "Machine Log",
+      "description": "Service records and locations for tracked heavy devices",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "serialNumber": { "type": "string" },
+         "model": { "type": "string" },
+        "customerId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "salesOrderId": { "type": "string" },
+        "soNumber": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "serialNumber", "model", "customerId", "status"]
+    },
+    "ExplicitGoodsReceipt": {
+      "title": "Explicit Goods Receipt",
+      "description": "Physical checklist and logging of checked-in components",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "grNumber": { "type": "string" },
+        "poId": { "type": "string" },
+        "poNumber": { "type": "string" },
+        "receivedDate": { "type": "string" },
+        "receivedBy": { "type": "string" },
+        "items": { "type": "array" }
+      },
+      "required": ["id", "grNumber", "poId", "receivedDate", "items"]
+    },
+    "ExplicitDeliveryReceipt": {
+      "title": "Explicit Delivery Receipt",
+      "description": "Physical checklist and logging of dispatched components",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "drNumber": { "type": "string" },
+        "soId": { "type": "string" },
+        "soNumber": { "type": "string" },
+        "dispatchDate": { "type": "string" },
+        "dispatchedBy": { "type": "string" },
+        "items": { "type": "array" }
+      },
+      "required": ["id", "drNumber", "soId", "dispatchDate", "items"]
+    },
+    "LoginSessionLog": {
+      "title": "Login Session Log",
+      "description": "Access trail and auditing logs for sessions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userName": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "userRole": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "userEmail", "timestamp", "status"]
+    },
+    "UserRecord": {
+      "title": "User Record",
+      "description": "Access privileges of system operators",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string" },
+        "status": { "type": "string" },
+        "isApproved": { "type": "boolean" },
+        "permissions": { "type": "object" }
+      },
+      "required": ["id", "email", "role", "status"]
+    }
+  },
+  "firestore": {
+    "/warehouses/{warehouseId}": {
+      "schema": "Warehouse",
+      "description": "Warehouses collection"
+    },
+    "/items/{itemId}": {
+      "schema": "Item",
+      "description": "Items collection"
+    },
+    "/suppliers/{supplierId}": {
+      "schema": "Supplier",
+      "description": "Suppliers collection"
+    },
+    "/customers/{customerId}": {
+      "schema": "Customer",
+      "description": "Customers collection"
+    },
+    "/purchase_orders/{poId}": {
+      "schema": "PurchaseOrder",
+      "description": "Purchase Orders collection"
+    },
+    "/sales_orders/{soId}": {
+      "schema": "SalesOrder",
+      "description": "Sales Orders collection"
+    },
+    "/transfers/{transferId}": {
+      "schema": "StockTransfer",
+      "description": "Stock Transfers collection"
+    },
+    "/transactions/{transactionId}": {
+      "schema": "InventoryTransaction",
+      "description": "Inventory Transactions audit trail"
+    },
+    "/lots/{lotId}": {
+      "schema": "StockLot",
+      "description": "Traceable lots metadata and statuses"
+    },
+    "/machine_logs/{machineId}": {
+      "schema": "MachineLog",
+      "description": "Heavy machinery service tracking"
+    },
+    "/explicit_grs/{grId}": {
+      "schema": "ExplicitGoodsReceipt",
+      "description": "Definitive physical goods checking receipts"
+    },
+    "/explicit_drs/{drId}": {
+      "schema": "ExplicitDeliveryReceipt",
+      "description": "Definitive physical delivery checking receipts"
+    },
+    "/login_session_logs/{logId}": {
+      "schema": "LoginSessionLog",
+      "description": "Security access audit trails"
+    },
+    "/users/{userId}": {
+      "schema": "UserRecord",
+      "description": "Allowed portals panel configurations and authorization maps"
+    }
+  }
+}

@@ -1,0 +1,138 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Re-route global Indigo utility color tokens to Azure Blue #4863A0 color palette */
+  --color-indigo-50: #f0f3f8;
+  --color-indigo-100: #e1e7f0;
+  --color-indigo-200: #c5d0e2;
+  --color-indigo-205: #b7c4db;
+  --color-indigo-300: #a5b5d3;
+  --color-indigo-400: #748cb9;
+  --color-indigo-500: #4863A0;
+  --color-indigo-505: #5573b5;
+  --color-indigo-600: #3b5183;
+  --color-indigo-700: #2f416a;
+  --color-indigo-800: #232f4e;
+  --color-indigo-900: #171f33;
+  --color-indigo-950: #0c101b;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-pick-list, #printable-pick-list * {
+    visibility: visible;
+  }
+  #printable-pick-list {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* SYSTEM-WIDE AUTOMATED DARK MODE RED LIGHT EYESAFE GLOW */
+html.dark, html.dark body, html.dark #root {
+  background-color: #070a13 !important;
+  color: #f1f5f9 !important;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark .bg-\[\#F8FAFC\], 
+html.dark .bg-slate-50, 
+html.dark .bg-slate-50\/50, 
+html.dark .bg-slate-50\/10, 
+html.dark .bg-slate-100\/50, 
+html.dark .bg-slate-50\/40, 
+html.dark .bg-slate-50\/30 {
+  background-color: #0b1120 !important;
+}
+
+html.dark .bg-white {
+  background-color: #0f172a !important;
+}
+
+html.dark .bg-indigo-50 {
+  background-color: #1e1b4b !important;
+  color: #c7d2fe !important;
+}
+
+html.dark .text-slate-900, 
+html.dark .text-slate-800, 
+html.dark .text-slate-705, 
+html.dark .text-slate-700, 
+html.dark .text-gray-900, 
+html.dark .text-gray-800,
+html.dark .text-slate-700 {
+  color: #f1f5f9 !important;
+}
+
+html.dark .text-slate-600, 
+html.dark .text-slate-500, 
+html.dark .text-gray-500, 
+html.dark .text-slate-450 {
+  color: #94a3b8 !important;
+}
+
+html.dark .text-slate-400, 
+html.dark .text-gray-400 {
+  color: #cbd5e1 !important;
+}
+
+html.dark .border, 
+html.dark .border-slate-100, 
+html.dark .border-slate-150, 
+html.dark .border-slate-200, 
+html.dark .border-gray-150, 
+html.dark .border-gray-200 {
+  border-color: #1e293b !important;
+}
+
+html.dark .divide-y > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #1e293b !important;
+}
+
+html.dark input, 
+html.dark select, 
+html.dark textarea {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+html.dark input::placeholder {
+  color: #64748b !important;
+}
+
+html.dark .bg-gray-50, 
+html.dark .bg-slate-100 {
+  background-color: #1e293b !important;
+}
+
+html.dark svg text {
+  fill: #94a3b8 !important;
+}
+
+html.dark .text-indigo-600 {
+  color: #818cf8 !important;
+}
+
+html.dark .border-indigo-100 {
+  border-color: #312e81 !important;
+}
+
