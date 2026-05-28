@@ -2,6 +2,7 @@
   "name": "equiprime-inventory",
   "private": true,
   "version": "0.0.0",
+  "homepage": "https://kyoya5608-web.github.io/inventory-management--3-/",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
