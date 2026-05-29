@@ -9,6 +9,7 @@
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
     "serve:prod": "npm run build && npm run start",
+    "watch:prod": "nodemon --watch src --watch server.ts --watch vite.config.ts --watch package.json --delay 1000ms --exec \"npm run serve:prod\"",
     "serve:lan": "npm run dev",
     "tunnel:dev": "npx localtunnel --port 3000",
     "serve:detached": "cmd /c start \"Inventory Management\" npm run serve:prod",
@@ -46,10 +47,10 @@
     "esbuild": "^0.25.0",
     "gh-pages": "^6.3.0",
     "lightningcss-win32-x64-msvc": "^1.32.0",
+    "nodemon": "^3.0.1",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
-    "localtunnel": "^2.0.2",
     "vite": "^6.2.3"
   }
 }
